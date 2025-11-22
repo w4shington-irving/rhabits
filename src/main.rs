@@ -58,10 +58,10 @@ fn main() {
     
     let mut stdout = stdout();
     let mut width = 0;
+    
+    execute!(stdout(), Clear(ClearType::All)).unwrap();
 
-    let (x_offset, y_offset) = cursor::position().unwrap();
-    //println!("\nCursor is at ({}, {})", x_offset, y_offset);
-
+    
     if let Some((Width(w), _)) = terminal_size() {
         width = w;
         for _y in 0..7 {    
@@ -73,7 +73,7 @@ fn main() {
        println!("Couldn't get terminal size.");
     }
 
-    let path = "/home/washington/Documents/habit-tracker/habits.json"; // local file, no absolute paths
+    let path = "/home/washington/Documents/habit-tracker/habits.json";
     let habits = load_data(path).expect("Failed to load data");
     
     let habit = &habits[0];
@@ -82,7 +82,7 @@ fn main() {
     let current_weekday = current_date.weekday().number_from_monday();
        
     for i in current_weekday..7 {
-        stdout.execute(MoveTo(2*(width/2)-2+x_offset, y_offset + i as u16)).unwrap();
+        stdout.execute(MoveTo(2*(width/2)-2, i as u16)).unwrap();
         print!("  ");
     }
     
@@ -96,16 +96,16 @@ fn main() {
         let mut position_x = 2*(width/2) - 2*difference_week-2;
         let mut position_y = weekday as u16 -1;
         
-        //println!("{}:{},{}", date, position_x, position_y);
+        
         if position_x >= 0 {
-            stdout.execute(MoveTo(position_x+x_offset, position_y+y_offset)).unwrap();
+            stdout.execute(MoveTo(position_x, position_y)).unwrap();
             print!(" ");
         } else {
             break;
         }
         
         stdout.flush().unwrap();
-        //println!("{}:{}",day, ordinal);
+    
     }
 
     stdout.execute(Hide).unwrap();
