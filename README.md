@@ -1,2 +1,2 @@
 # habit-tracker
-A simple visual habit tracker intended to be used as a widget. 
+A simple visual habit tracker written in Rust
