@@ -107,7 +107,6 @@ fn print_graph(habit: &Habit) {
     let width: u16;
     
     let current_date = Local::now().date_naive();
-    let current_week = current_date.iso_week().week();
     let current_weekday = current_date.weekday().number_from_monday();
 
      if let Some((Width(w), _)) = terminal_size() {
