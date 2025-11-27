@@ -25,7 +25,7 @@ struct Habit {
 #[derive(Parser)] 
 #[command(
     name = "habit-tracker",
-    about = "A simple habit tracker",
+    about = "A simple visual habit tracker",
     override_usage = "habit-tracker <COMMAND> [HABIT] [DATE]"
 )]
 struct Cli {
@@ -104,8 +104,7 @@ fn check_streak(habits: &mut Vec<Habit>) {
     let today = Local::now().date_naive();
     for habit in habits {
         if let Some(last_entry) = habit.history.last() {
-            let last_str: &str = last_entry.as_str(); 
-            let date = NaiveDate::parse_from_str(last_str, "%Y-%m-%d").unwrap();
+            let date = NaiveDate::parse_from_str(&last_entry.as_str(), "%Y-%m-%d").unwrap();
             if (today - date).num_days() > 1 {
                 habit.streak = 0;
             } else if date == today {
@@ -291,6 +290,7 @@ fn main() {
 }
 
 /* To-do
+- Add failsafe for malformed dates
 - Add default habit
 - Multiple habits graphing
 - Waybar module
