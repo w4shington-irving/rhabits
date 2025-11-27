@@ -1,11 +1,13 @@
-use chrono::{Datelike, Local, NaiveDate};
-use crossterm::terminal::{Clear, ClearType};
+use chrono::{Datelike, Days, Duration, Local, NaiveDate};
+use crossterm::ExecutableCommand;
+use crossterm::cursor::{Hide, MoveTo};
+use crossterm::terminal::{Clear, ClearType, enable_raw_mode};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
 use clap::{Parser, Subcommand};
 use terminal_size::{terminal_size, Width};
-use crossterm::{cursor::MoveTo, cursor::Hide, ExecutableCommand};
+use crossterm::event::{self, Event, KeyCode};
 use std::io;
 use std::io::{stdout, Write};
 use prettytable::{Table, Row, Cell};
@@ -49,6 +51,10 @@ enum Commands {
     },
     /// Remove a habit
     Remove {
+        name: String,
+    },
+    /// Edit a habit's history
+    Edit {
         name: String,
     }
 }
@@ -134,7 +140,8 @@ fn print_graph(habit: &Habit) {
     let mut stdout = stdout();
     let width: u16;
     
-    let current_date = Local::now().date_naive();
+    let current_date = NaiveDate::parse_from_str("2025-12-1", "%Y-%m-%d").unwrap();
+    //let current_date = Local::now().date_naive();
     let current_weekday = current_date.weekday().number_from_monday();
 
      if let Some((Width(w), _)) = terminal_size() {
@@ -162,9 +169,7 @@ fn print_graph(habit: &Habit) {
         let weekday = date.weekday().number_from_monday();
 
         let difference = current_date-date;
-        
-        
-        let calc_x = 2 * (width as i32 / 2) - 2 * (difference.num_days() as i32 + weekday as i32)/7-2;
+        let calc_x = 2 * (width as i32 / 2) - 2*((difference.num_days() as i32+weekday as i32-1)/7+1);
         
         if calc_x < 0 {
             break;
@@ -211,6 +216,68 @@ fn list_habits(habits: Vec<Habit>) {
     
 }
 
+fn edit_habit(habits: &mut Vec<Habit>, name: &str) {
+    
+    if let Some(habit) = habits.iter_mut().find(|h| h.name == name) {
+        let mut stdout = stdout();
+        let width: u16;
+        
+        if let Some((Width(w), _)) = terminal_size() {
+           width = w;
+        } else {
+           println!("Couldn't get terminal size.");
+           std::process::exit(1);
+        }
+
+        let current_date = Local::now().date_naive();
+        let current_weekday = current_date.weekday().number_from_monday();
+
+        let mut selected_date = current_date.clone();
+
+        //print_graph(habit);
+
+        // Read arrow keys 
+        enable_raw_mode();
+        loop {
+            if event::poll(std::time::Duration::from_millis(100)).unwrap_or(false) {
+                match event::read() {
+                    Ok(Event::Key(key_event)) => {
+                        match key_event.code {
+                            KeyCode::Up => {
+                                selected_date -= Duration::days(1);
+                            }
+                            KeyCode::Down => {
+                                let t = selected_date + Duration::days(1);
+                                if t>=current_date {
+                                    selected_date = t;
+                                }
+                            }
+                            KeyCode::Left => {
+                                selected_date -= Duration::days(7);
+                            }
+                            KeyCode::Right => {
+                                let t = selected_date + Duration::days(7);
+                                if t>=current_date {
+                                    selected_date = t;
+                                }
+                            }
+                            KeyCode::Esc => {
+                                println!("ESC pressed, exiting key loop");
+                                break;
+                            }
+                            _ => {}
+                        }
+                    }
+                    Ok(_) => {} // ignore other events
+                    Err(_) => break,
+                }
+            }
+            println!("{}",selected_date);
+        }
+    } else {
+        println!("Habit not found.");
+    }
+}
 fn main() {
     
     let cli = Cli::parse();
@@ -222,6 +289,7 @@ fn main() {
 
     let _ = save_data(&habits_path, &habits);
 
+    
     match &cli.command {
         Commands::List => {
             
@@ -244,6 +312,9 @@ fn main() {
             habits.retain(|h| h.name != *name);
             let _ = save_data(&habits_path, &habits);
         }
+        Commands::Edit { name } => {
+            edit_habit(&mut habits, name);
+        }
         
     }
     
@@ -252,4 +323,6 @@ fn main() {
 /* To-do
 - Add edit mode
 - Add default habit
+- Multiple habits graphing
+- Waybar module
  */
